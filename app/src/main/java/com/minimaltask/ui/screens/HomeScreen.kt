@@ -3,6 +3,7 @@ package com.minimaltask.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -157,4 +158,3 @@ private fun SmartFilter.label(): String = when (this) {
     SmartFilter.TODAY -> "Oggi"
     SmartFilter.HIGH_FOCUS -> "Alta concentrazione"
 }
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
