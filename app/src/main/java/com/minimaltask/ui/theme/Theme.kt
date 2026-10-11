@@ -35,6 +35,7 @@ fun MinimalTaskTheme(
     content: @Composable () -> Unit
 ) {
     val scheme = when (mode) {
+        AppThemeMode.SYSTEM -> if (isSystemInDarkTheme()) DarkScheme else LightScheme
         AppThemeMode.LIGHT -> LightScheme
         AppThemeMode.DARK -> DarkScheme
         AppThemeMode.COLOR_BLUE -> LightScheme.withSecondary(BlueSeed)
@@ -46,7 +47,7 @@ fun MinimalTaskTheme(
 
 @Composable
 fun MinimalTaskTheme(content: @Composable () -> Unit) {
-    MinimalTaskTheme(if (isSystemInDarkTheme()) AppThemeMode.DARK else AppThemeMode.LIGHT, content)
+    MinimalTaskTheme(AppThemeMode.SYSTEM, content)
 }
 
 private fun ColorScheme.withSecondary(color: Color): ColorScheme = copy(

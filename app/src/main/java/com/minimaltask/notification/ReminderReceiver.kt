@@ -15,6 +15,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Promemoria")
             .setContentText(title)
+            .setContentIntent(NotificationChannels.openAppIntent(context))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()

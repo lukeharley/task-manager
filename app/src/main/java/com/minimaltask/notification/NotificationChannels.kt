@@ -2,8 +2,11 @@ package com.minimaltask.notification
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
+import com.minimaltask.MainActivity
 
 object NotificationChannels {
     const val REMINDERS = "minimal_task_reminders"
@@ -19,4 +22,12 @@ object NotificationChannels {
             NotificationChannel(FOCUS, "Focus", NotificationManager.IMPORTANCE_DEFAULT)
         )
     }
+
+    /** Intent usato dal tap sulla notifica: riporta l'utente nell'app. */
+    fun openAppIntent(context: Context): PendingIntent = PendingIntent.getActivity(
+        context,
+        0,
+        Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 }

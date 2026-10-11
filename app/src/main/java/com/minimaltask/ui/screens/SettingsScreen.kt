@@ -11,10 +11,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,10 +65,13 @@ fun SettingsScreen(
                     label = { Text("Nuova categoria") },
                     singleLine = true
                 )
-                Button(onClick = {
-                    categoryViewModel.add(categoryName)
-                    categoryName = ""
-                }) { Text("Aggiungi") }
+                Button(
+                    enabled = categoryName.isNotBlank(),
+                    onClick = {
+                        categoryViewModel.add(categoryName)
+                        categoryName = ""
+                    }
+                ) { Text("Aggiungi") }
             }
         }
         items(categories, key = { it.id }) { category ->
@@ -77,22 +81,24 @@ fun SettingsScreen(
                 onDelete = categoryViewModel::delete
             )
         }
-        item { Divider() }
+        item { HorizontalDivider() }
         item {
             Text("Tema", style = MaterialTheme.typography.titleMedium)
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppThemeMode.entries.forEach { theme ->
                     val locked = theme.name.startsWith("COLOR") && !preferences.premiumActive
-                    Button(
-                        onClick = { if (locked) onPremium() else billingViewModel.setTheme(theme) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("${theme.label()}${if (locked) " Premium" else ""}")
+                    val label = "${theme.label()}${if (locked) " Premium" else ""}"
+                    val onClick = { if (locked) onPremium() else billingViewModel.setTheme(theme) }
+                    // Il tema attivo è un bottone pieno, gli altri sono "outlined": si vede subito quale è in uso.
+                    if (preferences.themeMode == theme) {
+                        Button(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text("✓ $label") }
+                    } else {
+                        OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Text(label) }
                     }
                 }
             }
         }
-        item { Divider() }
+        item { HorizontalDivider() }
         item {
             Text("Esportazione locale", style = MaterialTheme.typography.titleMedium)
             if (!preferences.premiumActive) {
@@ -126,14 +132,18 @@ private fun CategoryEditorRow(
             modifier = Modifier.weight(1f),
             singleLine = true
         )
-        Button(onClick = { onUpdate(category, name) }) { Text("Salva") }
+        Button(
+            enabled = name.isNotBlank() && name.trim() != category.name,
+            onClick = { onUpdate(category, name) }
+        ) { Text("Salva") }
         IconButton(onClick = { onDelete(category) }) {
-            Icon(Icons.Outlined.Delete, null)
+            Icon(Icons.Outlined.Delete, contentDescription = "Elimina categoria")
         }
     }
 }
 
 private fun AppThemeMode.label(): String = when (this) {
+    AppThemeMode.SYSTEM -> "Segui sistema"
     AppThemeMode.LIGHT -> "Chiaro"
     AppThemeMode.DARK -> "Scuro"
     AppThemeMode.COLOR_BLUE -> "Colorato blu"

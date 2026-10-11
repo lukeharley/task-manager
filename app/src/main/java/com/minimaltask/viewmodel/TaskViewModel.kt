@@ -85,7 +85,11 @@ class TaskViewModel @Inject constructor(
     }
 
     fun restore(task: Task) {
-        viewModelScope.launch { repository.restore(task.id) }
+        viewModelScope.launch {
+            repository.restore(task.id)
+            // Il completamento aveva annullato il promemoria: lo si riattiva se è ancora nel futuro.
+            if ((task.reminderTime ?: 0L) > System.currentTimeMillis()) reminderScheduler.schedule(task)
+        }
     }
 
     fun delete(task: Task) {
@@ -110,8 +114,9 @@ class TaskViewModel @Inject constructor(
             SmartFilter.NONE -> tasks
             SmartFilter.QUICK -> tasks.filter { (it.estimatedMinutes ?: Int.MAX_VALUE) < 5 }
             SmartFilter.URGENT -> tasks.filter { it.priority == Priority.HIGH.value }
+            // "Oggi" mostra anche i task scaduti nei giorni precedenti: sono ancora da fare.
             SmartFilter.TODAY -> tasks.filter { task ->
-                task.dueDate?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() == today } == true
+                task.dueDate?.let { !Instant.ofEpochMilli(it).atZone(zone).toLocalDate().isAfter(today) } == true
             }
             SmartFilter.HIGH_FOCUS -> tasks.filter { it.highFocus }
         }
