@@ -24,6 +24,11 @@ Il repo non ha il Gradle wrapper né CI: la PR #1 non è mai stata compilata.
 
 **Fatto quando:** CI verde sulla PR.
 
+> Stato: wrapper (Gradle 8.14.3), workflow `android.yml` e `.gitignore` fatti. Corretti in anticipo
+> `notify()` senza controllo del permesso, check di versione per gli allarmi esatti e
+> `enablePendingPurchases(PendingPurchasesParams)`. Lo schema `app/schemas/.../1.json` va committato
+> dalla prima build (la CI lo pubblica come artifact `room-schemas`).
+
 ## Step 1 — Promemoria che funzionano davvero
 Oggi il promemoria è solo "tra 1 ora" e si perde al riavvio del telefono.
 1. `Task.reminderTime` impostabile a **data + ora scelte** (DatePicker + TimePicker M3) nel `TaskFormScreen`;

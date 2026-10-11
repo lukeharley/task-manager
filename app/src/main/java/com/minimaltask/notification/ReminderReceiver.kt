@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.minimaltask.R
 
 class ReminderReceiver : BroadcastReceiver() {
@@ -19,7 +18,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        NotificationManagerCompat.from(context).notify(10_000 + taskId, notification)
+        NotificationChannels.notifyIfAllowed(context, 10_000 + taskId, notification)
     }
 
     companion object {
