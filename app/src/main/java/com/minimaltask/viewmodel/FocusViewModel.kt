@@ -1,5 +1,6 @@
 package com.minimaltask.viewmodel
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.minimaltask.data.preferences.AppPreferences
@@ -54,24 +55,33 @@ class FocusViewModel @Inject constructor(
     }
 
     fun setCustomMinutes(minutes: Int) {
-        val clamped = minutes.coerceIn(5, 180)
-        _uiState.value = _uiState.value.copy(
+        val clamped = minutes.coerceIn(MIN_CUSTOM_MINUTES, MAX_CUSTOM_MINUTES)
+        val state = _uiState.value
+        _uiState.value = state.copy(
             customMinutes = clamped,
-            remainingSeconds = if (_uiState.value.selectedMode == FocusMode.CUSTOM) clamped * 60 else _uiState.value.remainingSeconds
+            // Non si altera una sessione già in corso: il nuovo valore vale dalla prossima.
+            remainingSeconds = if (state.selectedMode == FocusMode.CUSTOM && !state.running) clamped * 60 else state.remainingSeconds
         )
         viewModelScope.launch { preferences.setFocusPreferences(clamped, 5) }
     }
 
     fun start() {
         if (_uiState.value.running) return
+        // Una sessione appena terminata riparte da capo invece di registrarne subito un'altra.
+        if (_uiState.value.remainingSeconds <= 0) reset()
+        val remainingMillis = _uiState.value.remainingSeconds * 1_000L
+        // Il tempo residuo si calcola dall'orologio di sistema: delay() da solo accumula ritardi.
+        val endAt = SystemClock.elapsedRealtime() + remainingMillis
         _uiState.value = _uiState.value.copy(running = true)
-        focusAlarmScheduler.scheduleFinish(_uiState.value.remainingSeconds * 1_000L)
+        focusAlarmScheduler.scheduleFinish(remainingMillis)
         timerJob = viewModelScope.launch {
-            while (_uiState.value.remainingSeconds > 0 && _uiState.value.running) {
-                delay(1_000)
-                _uiState.value = _uiState.value.copy(remainingSeconds = _uiState.value.remainingSeconds - 1)
+            while (true) {
+                val left = ((endAt - SystemClock.elapsedRealtime() + 999) / 1_000).toInt().coerceAtLeast(0)
+                _uiState.value = _uiState.value.copy(remainingSeconds = left)
+                if (left == 0) break
+                delay(TICK_MILLIS)
             }
-            if (_uiState.value.remainingSeconds <= 0) finish(completed = true)
+            finish()
         }
     }
 
@@ -91,14 +101,19 @@ class FocusViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(remainingSeconds = minutes * 60)
     }
 
-    private fun finish(completed: Boolean) {
-        timerJob?.cancel()
+    private fun finish() {
         val totalMinutes = if (_uiState.value.selectedMode == FocusMode.CUSTOM) {
             _uiState.value.customMinutes
         } else {
             _uiState.value.selectedMode.minutes
         }
-        viewModelScope.launch { repository.saveSession(totalMinutes, completed) }
+        viewModelScope.launch { repository.saveSession(totalMinutes, completed = true) }
         _uiState.value = _uiState.value.copy(running = false, remainingSeconds = 0)
+    }
+
+    companion object {
+        const val MIN_CUSTOM_MINUTES = 5
+        const val MAX_CUSTOM_MINUTES = 180
+        private const val TICK_MILLIS = 250L
     }
 }

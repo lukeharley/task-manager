@@ -13,6 +13,7 @@ class FocusNotificationReceiver : BroadcastReceiver() {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Focus completato")
             .setContentText("La sessione è terminata.")
+            .setContentIntent(NotificationChannels.openAppIntent(context))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()

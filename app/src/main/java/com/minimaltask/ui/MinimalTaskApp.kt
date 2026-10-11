@@ -16,6 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -44,29 +46,27 @@ fun MinimalTaskApp(billingViewModel: BillingViewModel = hiltViewModel()) {
                 NavigationBar {
                     NavigationBarItem(
                         selected = current == Route.Home.path,
-                        onClick = { navController.navigate(Route.Home.path) { launchSingleTop = true } },
-                        icon = { Icon(Icons.Outlined.Home, null) },
+                        onClick = { navController.navigateToTab(Route.Home.path) },
+                        icon = { Icon(Icons.Outlined.Home, contentDescription = null) },
                         label = { Text("Home") }
                     )
                     NavigationBarItem(
                         selected = current == Route.Focus.path,
-                        onClick = { navController.navigate(Route.Focus.path) { launchSingleTop = true } },
+                        onClick = { navController.navigateToTab(Route.Focus.path) },
                         icon = { Icon(Icons.Outlined.Timer, null) },
                         label = { Text("Focus") }
                     )
                     NavigationBarItem(
                         selected = current == Route.Stats.path,
                         onClick = {
-                            navController.navigate(if (preferences.premiumActive) Route.Stats.path else Route.Premium.path) {
-                                launchSingleTop = true
-                            }
+                            navController.navigateToTab(if (preferences.premiumActive) Route.Stats.path else Route.Premium.path)
                         },
                         icon = { Icon(Icons.Outlined.BarChart, null) },
                         label = { Text("Stats") }
                     )
                     NavigationBarItem(
                         selected = current == Route.Settings.path,
-                        onClick = { navController.navigate(Route.Settings.path) { launchSingleTop = true } },
+                        onClick = { navController.navigateToTab(Route.Settings.path) },
                         icon = { Icon(Icons.Outlined.Settings, null) },
                         label = { Text("Impost.") }
                     )
@@ -111,5 +111,17 @@ fun MinimalTaskApp(billingViewModel: BillingViewModel = hiltViewModel()) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Navigazione tipica di una bottom bar: si torna alla destinazione iniziale salvando lo stato
+ * delle altre tab, così il tasto Indietro non ripercorre ogni tab visitata.
+ */
+private fun NavHostController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }

@@ -15,6 +15,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -61,10 +64,26 @@ fun FocusScreen(
             }
         }
         if (state.selectedMode == FocusMode.CUSTOM && preferences.premiumActive) {
+            // Testo locale: l'utente può cancellare e riscrivere liberamente; il valore
+            // viene applicato solo quando rientra nell'intervallo consentito.
+            var customText by remember { mutableStateOf(state.customMinutes.toString()) }
+            val customValue = customText.toIntOrNull()
+            val customValid = customValue != null &&
+                customValue in FocusViewModel.MIN_CUSTOM_MINUTES..FocusViewModel.MAX_CUSTOM_MINUTES
             OutlinedTextField(
-                value = state.customMinutes.toString(),
-                onValueChange = { focusViewModel.setCustomMinutes(it.filter(Char::isDigit).toIntOrNull() ?: 30) },
+                value = customText,
+                onValueChange = { text ->
+                    customText = text.filter(Char::isDigit).take(3)
+                    customText.toIntOrNull()
+                        ?.takeIf { it in FocusViewModel.MIN_CUSTOM_MINUTES..FocusViewModel.MAX_CUSTOM_MINUTES }
+                        ?.let(focusViewModel::setCustomMinutes)
+                },
                 label = { Text("Minuti") },
+                isError = !customValid,
+                supportingText = {
+                    Text("Da ${FocusViewModel.MIN_CUSTOM_MINUTES} a ${FocusViewModel.MAX_CUSTOM_MINUTES} minuti")
+                },
+                enabled = !state.running,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )

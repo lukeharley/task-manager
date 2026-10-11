@@ -10,12 +10,15 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Singleton
 class ExportRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    fun exportTxt(tasks: List<Task>): File {
+    // La scrittura su disco avviene fuori dal main thread per non bloccare la UI.
+    suspend fun exportTxt(tasks: List<Task>): File = withContext(Dispatchers.IO) {
         val file = createFile("minimal-task-export.txt")
         file.writeText(
             tasks.joinToString(separator = "\n\n") { task ->
@@ -28,10 +31,10 @@ class ExportRepository @Inject constructor(
                 }
             }
         )
-        return file
+        file
     }
 
-    fun exportPdf(tasks: List<Task>): File {
+    suspend fun exportPdf(tasks: List<Task>): File = withContext(Dispatchers.IO) {
         val file = createFile("minimal-task-export.pdf")
         val document = PdfDocument()
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textSize = 14f }
@@ -51,7 +54,7 @@ class ExportRepository @Inject constructor(
                 page = document.startPage(PdfDocument.PageInfo.Builder(595, 842, pageNumber).create())
                 y = 48f
             }
-            page.canvas.drawText("• ${task.title}", 40f, y, paint)
+            page.canvas.drawText(fitToWidth("• ${task.title}", paint, MAX_TEXT_WIDTH), 40f, y, paint)
             y += 22f
             page.canvas.drawText("${task.category} · ${Priority.fromValue(task.priority).label}", 56f, y, paint)
             y += 26f
@@ -59,12 +62,23 @@ class ExportRepository @Inject constructor(
         document.finishPage(page)
         file.outputStream().use(document::writeTo)
         document.close()
-        return file
+        file
+    }
+
+    // Tronca con "…" i testi più larghi della pagina invece di farli uscire dal bordo.
+    private fun fitToWidth(text: String, paint: Paint, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        val count = paint.breakText(text, true, maxWidth - paint.measureText("…"), null)
+        return text.take(count) + "…"
     }
 
     private fun createFile(name: String): File {
         val dir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) ?: context.filesDir
         if (!dir.exists()) dir.mkdirs()
         return File(dir, name)
+    }
+
+    private companion object {
+        const val MAX_TEXT_WIDTH = 515f
     }
 }

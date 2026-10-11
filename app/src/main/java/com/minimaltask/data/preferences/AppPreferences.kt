@@ -14,10 +14,10 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "minimal_task_preferences")
 
-enum class AppThemeMode { LIGHT, DARK, COLOR_BLUE, COLOR_GREEN, COLOR_ROSE }
+enum class AppThemeMode { SYSTEM, LIGHT, DARK, COLOR_BLUE, COLOR_GREEN, COLOR_ROSE }
 
 data class UserPreferences(
-    val themeMode: AppThemeMode = AppThemeMode.LIGHT,
+    val themeMode: AppThemeMode = AppThemeMode.SYSTEM,
     val focusMinutes: Int = 25,
     val breakMinutes: Int = 5,
     val premiumActive: Boolean = false
@@ -37,8 +37,8 @@ class AppPreferences @Inject constructor(
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { values ->
         UserPreferences(
             themeMode = runCatching {
-                AppThemeMode.valueOf(values[Keys.theme] ?: AppThemeMode.LIGHT.name)
-            }.getOrDefault(AppThemeMode.LIGHT),
+                AppThemeMode.valueOf(values[Keys.theme] ?: AppThemeMode.SYSTEM.name)
+            }.getOrDefault(AppThemeMode.SYSTEM),
             focusMinutes = values[Keys.focusMinutes] ?: 25,
             breakMinutes = values[Keys.breakMinutes] ?: 5,
             premiumActive = values[Keys.premium] ?: false

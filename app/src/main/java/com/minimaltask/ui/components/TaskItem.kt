@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Restore
 import androidx.compose.material3.Card
@@ -28,6 +27,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.minimaltask.data.model.Priority
 import com.minimaltask.data.model.Task
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun TaskItem(
@@ -49,8 +53,8 @@ fun TaskItem(
         ) {
             IconButton(onClick = { if (task.completed) onRestore?.invoke() else onComplete() }) {
                 Icon(
-                    imageVector = if (task.completed) Icons.Outlined.Restore else if (task.completed) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
-                    contentDescription = null
+                    imageVector = if (task.completed) Icons.Outlined.Restore else Icons.Outlined.RadioButtonUnchecked,
+                    contentDescription = if (task.completed) "Ripristina task" else "Completa task"
                 )
             }
             Spacer(Modifier.width(8.dp))
@@ -65,7 +69,28 @@ fun TaskItem(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.secondary
                 )
+                task.dueDate?.let { dueDate ->
+                    val due = Instant.ofEpochMilli(dueDate).atZone(ZoneId.systemDefault()).toLocalDate()
+                    val overdue = !task.completed && due.isBefore(LocalDate.now())
+                    Text(
+                        dueLabel(due, overdue),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
+}
+
+private val DueDateFormatter = DateTimeFormatter.ofPattern("d MMM", Locale.ITALIAN)
+
+private fun dueLabel(due: LocalDate, overdue: Boolean): String {
+    val today = LocalDate.now()
+    val text = when (due) {
+        today -> "oggi"
+        today.plusDays(1) -> "domani"
+        else -> due.format(DueDateFormatter)
+    }
+    return if (overdue) "Scaduto: $text" else "Scadenza: $text"
 }

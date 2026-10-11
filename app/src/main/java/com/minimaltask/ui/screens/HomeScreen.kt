@@ -22,13 +22,19 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -41,6 +47,7 @@ import com.minimaltask.viewmodel.BillingViewModel
 import com.minimaltask.viewmodel.CategoryViewModel
 import com.minimaltask.viewmodel.SmartFilter
 import com.minimaltask.viewmodel.TaskViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -58,14 +65,17 @@ fun HomeScreen(
     val categories by categoryViewModel.categories.collectAsStateWithLifecycle()
     val preferences by billingViewModel.preferencesState.collectAsStateWithLifecycle()
     var showArchive by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("MinimalTask") },
                 actions = {
                     IconButton(onClick = onPremium) {
-                        Icon(Icons.Outlined.Diamond, contentDescription = null)
+                        Icon(Icons.Outlined.Diamond, contentDescription = "Premium")
                     }
                 }
             )
@@ -124,21 +134,50 @@ fun HomeScreen(
                 }
             }
             if (tasks.isEmpty()) {
-                item { Text("Nessun task attivo", style = MaterialTheme.typography.titleMedium) }
+                val filtering = filters.query.isNotBlank() || filters.category != null ||
+                    filters.priority != null || filters.smartFilter != SmartFilter.NONE
+                item {
+                    Text(
+                        if (filtering) "Nessun task corrisponde ai filtri" else "Nessun task attivo",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
-            items(tasks, key = { it.id }) { task ->
-                TaskItem(task = task, onClick = { onEdit(task.id) }, onComplete = { taskViewModel.complete(task) })
+            // Chiavi distinte per le due liste: durante il passaggio attivo/completato
+            // lo stesso task può comparire per un istante in entrambe.
+            items(tasks, key = { "active-${it.id}" }) { task ->
+                TaskItem(
+                    task = task,
+                    onClick = { onEdit(task.id) },
+                    onComplete = {
+                        taskViewModel.complete(task)
+                        // Un tocco accidentale si annulla dallo Snackbar senza aprire l'archivio.
+                        scope.launch {
+                            snackbarHostState.currentSnackbarData?.dismiss()
+                            val result = snackbarHostState.showSnackbar(
+                                message = "\"${task.title}\" completato",
+                                actionLabel = "Annulla",
+                                duration = SnackbarDuration.Short
+                            )
+                            if (result == SnackbarResult.ActionPerformed) taskViewModel.restore(task)
+                        }
+                    }
+                )
             }
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Archivio completati", style = MaterialTheme.typography.titleMedium)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Archivio completati (${completed.size})", style = MaterialTheme.typography.titleMedium)
                     Button(onClick = { showArchive = !showArchive }) {
                         Text(if (showArchive) "Nascondi" else "Mostra")
                     }
                 }
             }
             if (showArchive) {
-                items(completed, key = { it.id }) { task ->
+                items(completed, key = { "done-${it.id}" }) { task ->
                     TaskItem(
                         task = task,
                         onClick = { onEdit(task.id) },
