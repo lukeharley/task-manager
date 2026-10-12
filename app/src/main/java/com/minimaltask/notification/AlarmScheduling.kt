@@ -10,7 +10,7 @@ import android.os.Build
  * In quel caso si ripiega su un allarme inesatto, che il sistema può ritardare di poco.
  */
 internal fun AlarmManager.scheduleWakeup(triggerAt: Long, pendingIntent: PendingIntent) {
-    val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || canScheduleExactAlarms()
+    val canExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) canScheduleExactAlarms() else true
     if (canExact) {
         setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
     } else {

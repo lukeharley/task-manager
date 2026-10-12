@@ -1,0 +1,53 @@
+name: Android CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Valida il gradle-wrapper.jar e mette in cache dipendenze e build.
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build, lint e test
+        run: ./gradlew assembleDebug lintDebug testDebugUnitTest --stacktrace
+
+      # Room genera lo schema in app/schemas durante la build: se non è versionato
+      # o è cambiato, va committato insieme alla modifica (serve per le migrazioni).
+      - name: Controllo schemi Room
+        run: |
+          if [ -n "$(git status --porcelain app/schemas)" ]; then
+            echo "::warning::Schema Room nuovo o modificato: committa i file in app/schemas"
+            git status --porcelain app/schemas
+          fi
+
+      - name: Report lint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
+          if-no-files-found: ignore
+
+      - name: Schemi Room generati
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: room-schemas
+          path: app/schemas
+          if-no-files-found: ignore

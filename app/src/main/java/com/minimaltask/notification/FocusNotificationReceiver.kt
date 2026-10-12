@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import com.minimaltask.R
 
 class FocusNotificationReceiver : BroadcastReceiver() {
@@ -17,6 +16,6 @@ class FocusNotificationReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        NotificationManagerCompat.from(context).notify(20_000, notification)
+        NotificationChannels.notifyIfAllowed(context, 20_000, notification)
     }
 }

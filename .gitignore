@@ -6,4 +6,3 @@ local.properties
 *.apk
 *.aab
 app/build/
-app/schemas/
